@@ -4,23 +4,24 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # Adds Access-Control-Allow-Origin: * to all responses
+CORS(app)  
 
 GENDERIZE_URL = "https://api.genderize.io/"
 
-
+@app.route("/")
+def index():
+    return jsonify({"status": "ok", "message": "Genderize API is running"}), 200
 @app.route("/api/classify", methods=["GET"])
 def classify():
     name = request.args.get("name")
 
-    # --- Input validation ---
     if name is None or name.strip() == "":
         return jsonify({"status": "error", "message": "Missing or empty 'name' parameter"}), 400
 
     if not isinstance(name, str):
         return jsonify({"status": "error", "message": "'name' must be a string"}), 422
 
-    # --- Call Genderize API ---
+    
     try:
         response = requests.get(GENDERIZE_URL, params={"name": name}, timeout=5)
         response.raise_for_status()
@@ -32,7 +33,7 @@ def classify():
     except Exception:
         return jsonify({"status": "error", "message": "Unexpected error calling Genderize API"}), 500
 
-    # --- Edge case: no prediction available ---
+    
     gender = api_data.get("gender")
     count = api_data.get("count", 0)
 
@@ -42,7 +43,7 @@ def classify():
             "message": "No prediction available for the provided name"
         }), 200
 
-    # --- Process the response ---
+    
     probability = api_data.get("probability", 0)
     sample_size = count
     is_confident = probability >= 0.7 and sample_size >= 100
